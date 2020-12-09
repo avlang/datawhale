@@ -1,0 +1,39 @@
+{
+	"name": "ds_ADLS_tennis_wta",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_ADLS_dlswta",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"subfolder": {
+				"type": "string"
+			},
+			"hasHeader": {
+				"type": "bool",
+				"defaultValue": false
+			}
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": {
+					"value": "@dataset().subfolder",
+					"type": "Expression"
+				},
+				"fileSystem": "landing"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": {
+				"value": "@dataset().hasHeader",
+				"type": "Expression"
+			},
+			"quoteChar": "\""
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

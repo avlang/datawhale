@@ -1,0 +1,171 @@
+{
+	"name": "pl_data_HTTP_to_ADLS_matches",
+	"properties": {
+		"activities": [
+			{
+				"name": "Set year",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "year",
+					"value": {
+						"value": "@string(pipeline().parameters.yearStart)",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "Get match file",
+				"type": "Until",
+				"dependsOn": [
+					{
+						"activity": "Set year",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@greater(int(variables('year')), pipeline().parameters.yearEnd)",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "Copy matches csv",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Set index",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"storeSettings": {
+										"type": "HttpReadSettings",
+										"requestMethod": "GET"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "DelimitedTextSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextWriteSettings",
+										"quoteAllText": true,
+										"fileExtension": ".txt"
+									}
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "ds_HTTP_tennis_wta",
+									"type": "DatasetReference",
+									"parameters": {
+										"fileName": {
+											"value": "@concat('wta_matches_',variables('year'),'.csv')",
+											"type": "Expression"
+										},
+										"hasHeader": true
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ds_ADLS_tennis_wta",
+									"type": "DatasetReference",
+									"parameters": {
+										"subfolder": "matches",
+										"hasHeader": true
+									}
+								}
+							]
+						},
+						{
+							"name": "Set index",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "index",
+								"value": {
+									"value": "@variables('year')",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set next year",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Copy matches csv",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "year",
+								"value": {
+									"value": "@string(add(int(variables('index')),1))",
+									"type": "Expression"
+								}
+							}
+						}
+					],
+					"timeout": "7.00:00:00"
+				}
+			}
+		],
+		"parameters": {
+			"yearStart": {
+				"type": "int",
+				"defaultValue": 1968
+			},
+			"yearEnd": {
+				"type": "int",
+				"defaultValue": 2020
+			}
+		},
+		"variables": {
+			"year": {
+				"type": "String"
+			},
+			"index": {
+				"type": "String"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2020-12-08T04:04:39Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}
