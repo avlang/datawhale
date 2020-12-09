@@ -1,5 +1,5 @@
 # WTA Insights
-This repository contains all code, scripts and files associated with the WTA Insights project. Visit <a href="http://datawhale.ca">datawhale.ca</a> for WTA Insights project description and tutorials. </br></br>
+This repository contains all WTA Insights code, scripts and project files. Visit <a href="http://datawhale.ca">datawhale.ca</a> for WTA Insights project description and tutorials. </br></br>
 The <a href="https://github.com/JeffSackmann/tennis_wta">tennis_wta</a> dataset used in the WTA Insights project tutorials, a work by <a href="https://github.com/JeffSackmann">Jeff Sackmann</a>, is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> .
 
 # License
