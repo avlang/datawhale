@@ -3,7 +3,18 @@
 	"properties": {
 		"annotations": [],
 		"runtimeState": "Started",
-		"pipelines": [],
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "pl_data_HTTP_to_ADLS_matches",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"yearStart": 1968,
+					"yearEnd": 2021
+				}
+			}
+		],
 		"type": "ScheduleTrigger",
 		"typeProperties": {
 			"recurrence": {
