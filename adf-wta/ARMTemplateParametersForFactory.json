@@ -1,0 +1,27 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"value": "adf-wta"
+		},
+		"ls_ADLS_dlswta_accountKey": {
+			"value": ""
+		},
+		"ls_ADLS_dlswta_properties_typeProperties_url": {
+			"value": "https://dlswta.dfs.core.windows.net"
+		},
+		"ls_HTTP_tennis_wta_properties_typeProperties_url": {
+			"value": "https://raw.githubusercontent.com/JeffSackmann/tennis_wta/master/"
+		},
+		"st_monthlyTrigger_properties_pl_data_HTTP_to_ADLS_matches_parameters_yearStart": {
+			"value": 1968
+		},
+		"st_monthlyTrigger_properties_pl_data_HTTP_to_ADLS_matches_parameters_yearEnd": {
+			"value": 2021
+		},
+		"st_monthlyTrigger_properties_pl_data_HTTP_to_ADLS_rankings_parameters_fileNames": {
+			"value": "wta_rankings_00s.csv,wta_rankings_10s.csv,wta_rankings_80s.csv,wta_rankings_90s.csv,wta_rankings_current.csv"
+		}
+	}
+}

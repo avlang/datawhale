@@ -1,0 +1,595 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "adf-wta"
+		},
+		"ls_ADLS_dlswta_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'ls_ADLS_dlswta'"
+		},
+		"ls_ADLS_dlswta_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://dlswta.dfs.core.windows.net"
+		},
+		"ls_HTTP_tennis_wta_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://raw.githubusercontent.com/JeffSackmann/tennis_wta/master/"
+		},
+		"st_monthlyTrigger_properties_pl_data_HTTP_to_ADLS_matches_parameters_yearStart": {
+			"type": "int",
+			"defaultValue": 1968
+		},
+		"st_monthlyTrigger_properties_pl_data_HTTP_to_ADLS_matches_parameters_yearEnd": {
+			"type": "int",
+			"defaultValue": 2021
+		},
+		"st_monthlyTrigger_properties_pl_data_HTTP_to_ADLS_rankings_parameters_fileNames": {
+			"type": "string",
+			"defaultValue": "wta_rankings_00s.csv,wta_rankings_10s.csv,wta_rankings_80s.csv,wta_rankings_90s.csv,wta_rankings_current.csv"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_data_HTTP_to_ADLS_matches')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Set year",
+						"type": "SetVariable",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "year",
+							"value": {
+								"value": "@string(pipeline().parameters.yearStart)",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Get match file",
+						"type": "Until",
+						"dependsOn": [
+							{
+								"activity": "Set year",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@greater(int(variables('year')), pipeline().parameters.yearEnd)",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "Copy matches csv",
+									"type": "Copy",
+									"dependsOn": [
+										{
+											"activity": "Set index",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"storeSettings": {
+												"type": "HttpReadSettings",
+												"requestMethod": "GET"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": ".txt"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_HTTP_tennis_wta",
+											"type": "DatasetReference",
+											"parameters": {
+												"fileName": {
+													"value": "@concat('wta_matches_',variables('year'),'.csv')",
+													"type": "Expression"
+												},
+												"hasHeader": true
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_ADLS_tennis_wta",
+											"type": "DatasetReference",
+											"parameters": {
+												"subfolder": "matches",
+												"hasHeader": true
+											}
+										}
+									]
+								},
+								{
+									"name": "Set index",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "index",
+										"value": {
+											"value": "@variables('year')",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Set next year",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "Copy matches csv",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "year",
+										"value": {
+											"value": "@string(add(int(variables('index')),1))",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"timeout": "7.00:00:00"
+						}
+					}
+				],
+				"parameters": {
+					"yearStart": {
+						"type": "int",
+						"defaultValue": 1968
+					},
+					"yearEnd": {
+						"type": "int",
+						"defaultValue": 2020
+					}
+				},
+				"variables": {
+					"year": {
+						"type": "String"
+					},
+					"index": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"lastPublishTime": "2020-12-08T04:04:39Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_HTTP_tennis_wta')]",
+				"[concat(variables('factoryId'), '/datasets/ds_ADLS_tennis_wta')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_data_HTTP_to_ADLS_players')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy players csv",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "HttpReadSettings",
+									"requestMethod": "GET"
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "DelimitedTextSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "DelimitedTextWriteSettings",
+									"quoteAllText": true,
+									"fileExtension": ".txt"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_HTTP_tennis_wta",
+								"type": "DatasetReference",
+								"parameters": {
+									"fileName": "wta_players.csv",
+									"hasHeader": false
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ds_ADLS_tennis_wta",
+								"type": "DatasetReference",
+								"parameters": {
+									"subfolder": "players",
+									"hasHeader": false
+								}
+							}
+						]
+					}
+				],
+				"annotations": [],
+				"lastPublishTime": "2020-12-07T23:40:12Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_HTTP_tennis_wta')]",
+				"[concat(variables('factoryId'), '/datasets/ds_ADLS_tennis_wta')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_data_HTTP_to_ADLS_rankings')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Set fileNameArray",
+						"type": "SetVariable",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "fileNameArray",
+							"value": {
+								"value": "@split(pipeline().parameters.fileNames,',')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "ForEach fileName",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Set fileNameArray",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@variables('fileNameArray')",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "Copy rankings csv",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "7.00:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "DelimitedTextSource",
+											"storeSettings": {
+												"type": "HttpReadSettings",
+												"requestMethod": "GET"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextReadSettings"
+											}
+										},
+										"sink": {
+											"type": "DelimitedTextSink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											},
+											"formatSettings": {
+												"type": "DelimitedTextWriteSettings",
+												"quoteAllText": true,
+												"fileExtension": ".txt"
+											}
+										},
+										"enableStaging": false,
+										"translator": {
+											"type": "TabularTranslator",
+											"typeConversion": true,
+											"typeConversionSettings": {
+												"allowDataTruncation": true,
+												"treatBooleanAsNumber": false
+											}
+										}
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_HTTP_tennis_wta",
+											"type": "DatasetReference",
+											"parameters": {
+												"fileName": {
+													"value": "@item()",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_ADLS_tennis_wta",
+											"type": "DatasetReference",
+											"parameters": {
+												"subfolder": "rankings"
+											}
+										}
+									]
+								}
+							]
+						}
+					}
+				],
+				"parameters": {
+					"fileNames": {
+						"type": "string",
+						"defaultValue": "wta_rankings_00s.csv,wta_rankings_10s.csv,wta_rankings_80s.csv,wta_rankings_90s.csv,wta_rankings_current.csv"
+					}
+				},
+				"variables": {
+					"fileNameArray": {
+						"type": "Array"
+					}
+				},
+				"annotations": [],
+				"lastPublishTime": "2020-12-07T23:40:12Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_HTTP_tennis_wta')]",
+				"[concat(variables('factoryId'), '/datasets/ds_ADLS_tennis_wta')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_ADLS_tennis_wta')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_ADLS_dlswta",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"subfolder": {
+						"type": "string"
+					},
+					"hasHeader": {
+						"type": "bool",
+						"defaultValue": false
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": {
+							"value": "@dataset().subfolder",
+							"type": "Expression"
+						},
+						"fileSystem": "landing"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": {
+						"value": "@dataset().hasHeader",
+						"type": "Expression"
+					},
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_ADLS_dlswta')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_HTTP_tennis_wta')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_HTTP_tennis_wta",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"fileName": {
+						"type": "string"
+					},
+					"hasHeader": {
+						"type": "bool",
+						"defaultValue": false
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "HttpServerLocation",
+						"relativeUrl": {
+							"value": "@dataset().fileName",
+							"type": "Expression"
+						}
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": {
+						"value": "@dataset().hasHeader",
+						"type": "Expression"
+					},
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_HTTP_tennis_wta')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_ADLS_dlswta')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('ls_ADLS_dlswta_properties_typeProperties_url')]",
+					"accountKey": {
+						"type": "SecureString",
+						"value": "[parameters('ls_ADLS_dlswta_accountKey')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ls_HTTP_tennis_wta')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "HttpServer",
+				"typeProperties": {
+					"url": "[parameters('ls_HTTP_tennis_wta_properties_typeProperties_url')]",
+					"enableServerCertificateValidation": true,
+					"authenticationType": "Anonymous"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/st_monthlyTrigger')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Started",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "pl_data_HTTP_to_ADLS_matches",
+							"type": "PipelineReference"
+						},
+						"parameters": {
+							"yearStart": "[parameters('st_monthlyTrigger_properties_pl_data_HTTP_to_ADLS_matches_parameters_yearStart')]",
+							"yearEnd": "[parameters('st_monthlyTrigger_properties_pl_data_HTTP_to_ADLS_matches_parameters_yearEnd')]"
+						}
+					},
+					{
+						"pipelineReference": {
+							"referenceName": "pl_data_HTTP_to_ADLS_players",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					},
+					{
+						"pipelineReference": {
+							"referenceName": "pl_data_HTTP_to_ADLS_rankings",
+							"type": "PipelineReference"
+						},
+						"parameters": {
+							"fileNames": "[parameters('st_monthlyTrigger_properties_pl_data_HTTP_to_ADLS_rankings_parameters_fileNames')]"
+						}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Month",
+						"interval": 1,
+						"startTime": "2021-01-01T07:35:00Z",
+						"timeZone": "UTC",
+						"schedule": {
+							"monthDays": [
+								-1
+							]
+						}
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/pl_data_HTTP_to_ADLS_matches')]",
+				"[concat(variables('factoryId'), '/pipelines/pl_data_HTTP_to_ADLS_players')]",
+				"[concat(variables('factoryId'), '/pipelines/pl_data_HTTP_to_ADLS_rankings')]"
+			]
+		}
+	]
+}
