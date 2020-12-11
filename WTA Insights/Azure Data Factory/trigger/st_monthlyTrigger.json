@@ -13,6 +13,12 @@
 					"yearStart": 1968,
 					"yearEnd": 2021
 				}
+			},
+			{
+				"pipelineReference": {
+					"referenceName": "pl_data_HTTP_to_ADLS_players",
+					"type": "PipelineReference"
+				}
 			}
 		],
 		"type": "ScheduleTrigger",
