@@ -19,6 +19,15 @@
 					"referenceName": "pl_data_HTTP_to_ADLS_players",
 					"type": "PipelineReference"
 				}
+			},
+			{
+				"pipelineReference": {
+					"referenceName": "pl_data_HTTP_to_ADLS_rankings",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"fileNames": "wta_rankings_00s.csv,wta_rankings_10s.csv,wta_rankings_80s.csv,wta_rankings_90s.csv,wta_rankings_current.csv"
+				}
 			}
 		],
 		"type": "ScheduleTrigger",
