@@ -1,0 +1,17 @@
+{
+	"name": "st_monthlyTrigger",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Stopped",
+		"pipelines": [],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Minute",
+				"interval": 15,
+				"startTime": "2020-12-11T07:28:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}
